@@ -7,19 +7,80 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use HashBraceScanner\Scanner;
 
-if ($argc < 2) {
-    fwrite(STDERR, "Usage: bin/scan <dir> [<dir> ...] > reports/report.json\n");
+$directories = [];
+$outputFile = null;
+
+foreach (array_slice($argv, 1) as $arg) {
+    if (str_starts_with($arg, '--output=')) {
+        $outputFile = substr($arg, 9);
+    } elseif (!str_starts_with($arg, '-')) {
+        $directories[] = $arg;
+    }
+}
+
+if ($directories === []) {
+    fwrite(STDERR, "Usage: bin/scan <dir> [<dir> ...] [--output=reports/report.json]\n");
+    fwrite(STDERR, "       bin/scan <dir> > reports/report.json\n");
     exit(1);
 }
 
-$scanner = new Scanner();
-
-foreach (array_slice($argv, 1) as $dir) {
+foreach ($directories as $dir) {
     if (!is_dir($dir)) {
         fwrite(STDERR, "Not a directory: {$dir}\n");
         exit(1);
     }
-    $scanner->scanDirectory($dir);
 }
 
-echo json_encode($scanner->report(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+$scanner = new Scanner();
+$startTime = microtime(true);
+
+fwrite(STDERR, "Scanning directories: " . implode(', ', $directories) . "\n");
+
+$onProgress = function (int $scanned, int $filesWithHits, array $hits) use ($startTime): void {
+    if ($scanned % 250 === 0) {
+        $elapsed = max(0.001, microtime(true) - $startTime);
+        $rate = (int) ($scanned / $elapsed);
+        $breaking = ($hits['unterminated'] ?? 0) + ($hits['trailing_code'] ?? 0);
+
+        fwrite(
+            STDERR,
+            sprintf(
+                "\r  Scanned: %s files (%s/s) | Hits: %d (Breaking: %d)   ",
+                number_format($scanned),
+                number_format($rate),
+                $filesWithHits,
+                $breaking
+            )
+        );
+    }
+};
+
+foreach ($directories as $dir) {
+    $scanner->scanDirectory($dir, $onProgress);
+}
+
+$elapsed = max(0.001, microtime(true) - $startTime);
+$report = $scanner->report();
+$stats = $report['stats'];
+$scannedTotal = $stats['files_scanned'];
+$rate = (int) ($scannedTotal / $elapsed);
+
+fwrite(STDERR, "\r" . str_repeat(' ', 70) . "\r");
+fwrite(STDERR, sprintf("✓ Completed scan of %s files in %.2fs (%s files/s)\n\n", number_format($scannedTotal), $elapsed, number_format($rate)));
+fwrite(STDERR, "  Summary:\n");
+fwrite(STDERR, sprintf("  • Files with hits: %d\n", $stats['files_with_hits']));
+fwrite(STDERR, sprintf("  • Breaking hits:   %d\n", $stats['breaking_hits']));
+fwrite(STDERR, sprintf("  • Unterminated:    %d\n", $stats['hits']['unterminated']));
+fwrite(STDERR, sprintf("  • Trailing code:   %d\n", $stats['hits']['trailing_code']));
+fwrite(STDERR, sprintf("  • Clean hits:      %d\n", $stats['hits']['clean']));
+fwrite(STDERR, "\n");
+
+$json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+
+if ($outputFile !== null) {
+    @mkdir(dirname($outputFile), 0777, true);
+    file_put_contents($outputFile, $json);
+    fwrite(STDERR, "Report written to {$outputFile}\n");
+} else {
+    echo $json;
+}

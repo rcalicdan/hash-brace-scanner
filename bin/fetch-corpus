@@ -3,16 +3,19 @@
 
 declare(strict_types=1);
 
+define('TYPEPHP_DISABLE', true);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use HashBraceScanner\Fetch\Fetcher;
+use function Rcalicdan\ConfigLoader\env;
 
-// Usage: php bin/fetch-corpus [count] [--concurrency=8] [--target=corpus] [--report=reports/fetch-report.json]
-$count = 500;
+$count = (int) env('FETCH_COUNT', 500);
+
 $options = [
-    'concurrency' => '8',
-    'target' => __DIR__ . '/../corpus',
-    'report' => __DIR__ . '/../reports/fetch-report.json',
+    'concurrency' => (string) env('FETCH_CONCURRENCY', '8'),
+    'target'      => (string) env('FETCH_TARGET', __DIR__ . '/../corpus'),
+    'report'      => (string) env('FETCH_REPORT', __DIR__ . '/../reports/fetch-report.json'),
 ];
 
 foreach (array_slice($argv, 1) as $arg) {
@@ -27,11 +30,11 @@ foreach (array_slice($argv, 1) as $arg) {
 }
 
 $concurrency = (int) $options['concurrency'];
-$token = getenv('GITHUB_TOKEN') ?: null;
+
+$token = env('GITHUB_TOKEN') ?: null;
 
 if ($token === null) {
-    fwrite(STDERR, "Note: GITHUB_TOKEN is not set. Zip downloads from api.github.com are rate-limited\n"
-        . "      when unauthenticated, so large runs will likely report rate_limited failures.\n");
+    fwrite(STDERR, "Note: GITHUB_TOKEN is not set in .env or environment. Large runs may hit rate limits.\n");
 }
 
 @mkdir($options['target'], 0777, true);
@@ -59,7 +62,7 @@ foreach ($report->failuresByReason() as $reason => $n) {
     fwrite(STDERR, "  {$reason}: {$n}\n");
 }
 if ($report->hasRateLimitFailures()) {
-    fwrite(STDERR, "Rate limited: set GITHUB_TOKEN (a personal access token) and run again.\n");
+    fwrite(STDERR, "Rate limited: check your GITHUB_TOKEN in .env and run again.\n");
 }
 fwrite(STDERR, "Report written to {$options['report']}\n");
 

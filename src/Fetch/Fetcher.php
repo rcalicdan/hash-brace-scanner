@@ -47,8 +47,7 @@ final class Fetcher
             ->connectTimeout(10)
             ->timeout(60)
             ->redirects(true, 10)
-            ->retry(maxRetries: 3, baseDelay: 1.0)
-        ;
+            ->retry(maxRetries: 3, baseDelay: 1.0);
     }
 
     /**
@@ -60,7 +59,7 @@ final class Fetcher
 
         $results = await(Promise::mapSettled(
             range(1, $pages),
-            fn (int $page) => $this->http->get(self::POPULAR_URL, ['per_page' => self::PER_PAGE, 'page' => $page]),
+            fn(int $page) => $this->http->get(self::POPULAR_URL, ['per_page' => self::PER_PAGE, 'page' => $page]),
             concurrency: self::PAGE_CONCURRENCY,
         ));
 
@@ -97,7 +96,7 @@ final class Fetcher
 
         $results = await(Promise::mapSettled(
             $names,
-            fn (string $name) => $this->fetchOne($name, $tick),
+            fn(string $name) => $this->fetchOne($name, $tick),
             concurrency: $this->concurrency,
         ));
 
@@ -122,6 +121,12 @@ final class Fetcher
     {
         return async(function () use ($name, $onDone): PackageResult {
             try {
+                $packageDir = $this->targetDir . DIRECTORY_SEPARATOR . str_replace('/', '__', $name);
+
+                if (is_dir($packageDir)) {
+                    return new PackageResult($name, 'cached');
+                }
+
                 $meta = await($this->http->get(self::METADATA_URL . $name . '.json'));
                 self::assertOk($name, $meta->status());
 
@@ -140,7 +145,7 @@ final class Fetcher
                     ZipExtractor::extract(
                         $name,
                         $tmp,
-                        $this->targetDir . DIRECTORY_SEPARATOR . str_replace('/', '__', $name),
+                        $packageDir,
                     );
                 } finally {
                     @unlink($tmp);

@@ -12,7 +12,7 @@ use Throwable;
 
 final class Scanner
 {
-    private const MAX_SAMPLES_PER_CATEGORY = 25;
+    private const int MAX_SAMPLES_PER_CATEGORY = 25;
 
     /**
      * @var array<string, int>
@@ -40,7 +40,10 @@ final class Scanner
         }
     }
 
-    public function scanDirectory(string $root): void
+    /**
+     * @param (\Closure(int $scanned, int $filesWithHits, array<string, int> $hits): void)|null $onProgress
+     */
+    public function scanDirectory(string $root, ?\Closure $onProgress = null): void
     {
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)
@@ -49,6 +52,10 @@ final class Scanner
         foreach ($iterator as $file) {
             if ($file->isFile() && $file->getExtension() === 'php') {
                 $this->scanFile($file->getPathname());
+
+                if ($onProgress !== null) {
+                    $onProgress($this->filesScanned, $this->filesWithHits, $this->hits);
+                }
             }
         }
     }
