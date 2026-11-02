@@ -69,7 +69,6 @@ final class Scanner
 
         $this->filesScanned++;
 
-        // Cheap pre-filter: the tokenizer below confirms it is a real comment.
         if (! str_contains($code, '#{')) {
             return;
         }
@@ -130,5 +129,30 @@ final class Scanner
             ],
             'samples' => $this->samples,
         ];
+    }
+
+    /**
+     * @param array{
+     *   stats: array<string, mixed>, 
+     *   samples: array<string, list<array{file: string, line: int, text: string}>>} $other
+     */
+    public function merge(array $other): void
+    {
+        $this->filesScanned += $other['stats']['files_scanned'];
+        $this->filesUnparsable += $other['stats']['files_unparsable'];
+        $this->filesWithHits += $other['stats']['files_with_hits'];
+        $this->annotationLike += $other['stats']['annotation_like'];
+
+        foreach ($other['stats']['hits'] as $category => $count) {
+            $this->hits[$category] = ($this->hits[$category] ?? 0) + $count;
+        }
+
+        foreach ($other['samples'] as $category => $samples) {
+            foreach ($samples as $sample) {
+                if (\count($this->samples[$category]) < self::MAX_SAMPLES_PER_CATEGORY) {
+                    $this->samples[$category][] = $sample;
+                }
+            }
+        }
     }
 }

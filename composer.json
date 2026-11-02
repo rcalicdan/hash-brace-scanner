@@ -9,6 +9,7 @@
         "ext-tokenizer": "*",
         "ext-zip": "*",
         "hiblaphp/http-client": "^1.0",
+        "hiblaphp/parallel": "^1.0@beta",
         "rcalicdan/config-loader": "^1.2"
     },
     "require-dev": {

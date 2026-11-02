@@ -9,6 +9,7 @@ use Hibla\HttpClient\Exceptions\NetworkException;
 use Hibla\HttpClient\Exceptions\TimeoutException;
 use Hibla\HttpClient\Http;
 use Hibla\HttpClient\Interfaces\HttpClientInterface;
+use Hibla\Parallel\ProcessPool;
 use Hibla\Promise\Promise;
 use RuntimeException;
 use Throwable;
@@ -17,26 +18,25 @@ use function Hibla\async;
 use function Hibla\await;
 
 /**
- * Downloads the latest release of popular Packagist packages concurrently,
- * using Hibla's HTTP client and Promise::mapSettled() so that one failing
- * package never cancels the others.
+ * Downloads the latest release of popular Packagist packages concurrently.
+ * Uses Hibla HTTP Client for async network I/O and Hibla Parallel ProcessPool
+ * to offload CPU-bound zip decompression across CPU cores.
  */
 final class Fetcher
 {
     private const string POPULAR_URL = 'https://packagist.org/explore/popular.json';
-
     private const string METADATA_URL = 'https://repo.packagist.org/p2/';
-
     private const int PER_PAGE = 100;
-
     private const int PAGE_CONCURRENCY = 4;
 
     private HttpClientInterface $http;
+    private ProcessPool $pool;
 
     public function __construct(
         private readonly string $targetDir,
         private readonly int $concurrency = 8,
         private readonly ?string $githubToken = null,
+        int $workerCount = 4
     ) {
         if ($concurrency < 1) {
             throw new RuntimeException('Concurrency must be at least 1.');
@@ -48,6 +48,8 @@ final class Fetcher
             ->timeout(60)
             ->redirects(true, 10)
             ->retry(maxRetries: 3, baseDelay: 1.0);
+
+        $this->pool = new ProcessPool(size: $workerCount);
     }
 
     /**
@@ -65,7 +67,7 @@ final class Fetcher
 
         $names = [];
         foreach ($results as $result) {
-            if (! $result->isFulfilled() || ! $result->value->successful()) {
+            if (!$result->isFulfilled() || !$result->value->successful()) {
                 continue;
             }
             foreach ($result->value->json('packages', []) as $package) {
@@ -78,7 +80,7 @@ final class Fetcher
 
     /**
      * @param list<string> $names
-     * @param (Closure(int, int, string): void)|null $onProgress called as ($done, $total, $name)
+     * @param (Closure(int, int, string): void)|null $onProgress
      */
     public function fetchAll(array $names, ?Closure $onProgress = null): FetchReport
     {
@@ -103,7 +105,6 @@ final class Fetcher
         foreach ($results as $index => $result) {
             if ($result->isFulfilled()) {
                 $report->recordSuccess($result->value);
-
                 continue;
             }
 
@@ -142,11 +143,9 @@ final class Fetcher
                     $download = await($client->download($dist->url, $tmp));
                     self::assertOk($name, (int) $download['status']);
 
-                    ZipExtractor::extract(
-                        $name,
-                        $tmp,
-                        $packageDir,
-                    );
+                    await($this->pool->run(static function () use ($name, $tmp, $packageDir): void {
+                        ZipExtractor::extract($name, $tmp, $packageDir);
+                    }));
                 } finally {
                     @unlink($tmp);
                 }

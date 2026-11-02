@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "40e4d14e446ca6f42f4b34b55edffe9a",
+    "content-hash": "b777ecdae2482b293ee4e40469e752c5",
     "packages": [
         {
             "name": "evenement/evenement",
@@ -365,6 +365,75 @@
             "time": "2026-07-18T13:24:29+00:00"
         },
         {
+            "name": "hiblaphp/parallel",
+            "version": "1.0.0-beta.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/hiblaphp/parallel.git",
+                "reference": "a7730dbc164f58ae1e22953b807a7a4f7a762226"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/hiblaphp/parallel/zipball/a7730dbc164f58ae1e22953b807a7a4f7a762226",
+                "reference": "a7730dbc164f58ae1e22953b807a7a4f7a762226",
+                "shasum": ""
+            },
+            "require": {
+                "hiblaphp/async": "^1.0",
+                "hiblaphp/cancellation": "^1.0",
+                "hiblaphp/event-loop": "^1.0",
+                "hiblaphp/promise": "^1.0",
+                "hiblaphp/stream": "^1.0",
+                "php": "^8.4",
+                "rcalicdan/config-loader": "^1.0",
+                "rcalicdan/process-killer": "^1.0",
+                "rcalicdan/serializer": "^1.0"
+            },
+            "require-dev": {
+                "hiblaphp/socket": "^1.0",
+                "laravel/pint": "^1.25",
+                "mockery/mockery": "^1.6",
+                "pestphp/pest": "^4.0",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.1",
+                "phpstan/phpstan-strict-rules": "^2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "Hibla\\Parallel\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Reymart A. Calicdan",
+                    "email": "reymart.calicdan06@gmail.com"
+                }
+            ],
+            "support": {
+                "issues": "https://github.com/hiblaphp/parallel/issues",
+                "source": "https://github.com/hiblaphp/parallel/tree/1.0.0-beta.5"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/hiblaphp",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/rcalicdan",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-06-20T16:37:47+00:00"
+        },
+        {
             "name": "hiblaphp/promise",
             "version": "1.0.0-beta.5",
             "source": {
@@ -491,6 +560,71 @@
                 }
             ],
             "time": "2026-07-07T16:17:58+00:00"
+        },
+        {
+            "name": "opis/closure",
+            "version": "4.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/opis/closure.git",
+                "reference": "b97e42b95bb72d87507f5e2d137ceb239aea8d6b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/opis/closure/zipball/b97e42b95bb72d87507f5e2d137ceb239aea8d6b",
+                "reference": "b97e42b95bb72d87507f5e2d137ceb239aea8d6b",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "4.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "Opis\\Closure\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marius Sarca",
+                    "email": "marius.sarca@gmail.com"
+                },
+                {
+                    "name": "Sorin Sarca",
+                    "email": "sarca_sorin@hotmail.com"
+                }
+            ],
+            "description": "A library that can be used to serialize closures (anonymous functions) and arbitrary data.",
+            "homepage": "https://opis.io/closure",
+            "keywords": [
+                "anonymous classes",
+                "anonymous functions",
+                "closure",
+                "function",
+                "serializable",
+                "serialization",
+                "serialize"
+            ],
+            "support": {
+                "issues": "https://github.com/opis/closure/issues",
+                "source": "https://github.com/opis/closure/tree/4.5.0"
+            },
+            "time": "2026-03-05T13:32:42+00:00"
         },
         {
             "name": "phpoption/phpoption",
@@ -675,6 +809,107 @@
                 }
             ],
             "time": "2026-01-03T09:59:38+00:00"
+        },
+        {
+            "name": "rcalicdan/process-killer",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rcalicdan/process-killer.git",
+                "reference": "fbf8b27429f621e1df54b49361ad633a30625c24"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rcalicdan/process-killer/zipball/fbf8b27429f621e1df54b49361ad633a30625c24",
+                "reference": "fbf8b27429f621e1df54b49361ad633a30625c24",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.25",
+                "pestphp/pest": "^4.0",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Rcalicdan\\ProcessKiller\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Reymart A. Calicdan",
+                    "email": "reymart.calicdan06@gmail.com"
+                }
+            ],
+            "description": "A PHP library for killing processes and their children",
+            "support": {
+                "issues": "https://github.com/rcalicdan/process-killer/issues",
+                "source": "https://github.com/rcalicdan/process-killer/tree/1.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/hiblaphp",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/rcalicdan",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-06-16T06:31:07+00:00"
+        },
+        {
+            "name": "rcalicdan/serializer",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rcalicdan/serializer.git",
+                "reference": "b04f9c5584961c164d6dd424a0608b6f7275dc9f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rcalicdan/serializer/zipball/b04f9c5584961c164d6dd424a0608b6f7275dc9f",
+                "reference": "b04f9c5584961c164d6dd424a0608b6f7275dc9f",
+                "shasum": ""
+            },
+            "require": {
+                "opis/closure": "^4.0",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "pestphp/pest": "^4.0",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Rcalicdan\\Serializer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "code serializer for ipc and parallel execution libraries built on top of opis/closure",
+            "support": {
+                "issues": "https://github.com/rcalicdan/serializer/issues",
+                "source": "https://github.com/rcalicdan/serializer/tree/1.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/rcalicdan",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-12-30T15:23:14+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -5232,7 +5467,9 @@
     ],
     "aliases": [],
     "minimum-stability": "beta",
-    "stability-flags": {},
+    "stability-flags": {
+        "hiblaphp/parallel": 10
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
