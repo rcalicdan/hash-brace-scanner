@@ -1,0 +1,6 @@
+/corpus/
+/reports/*.json
+/vendor/
+.phpunit.cache/
+.phpunit.result.cache
+

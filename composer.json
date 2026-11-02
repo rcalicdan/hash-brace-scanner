@@ -1,0 +1,36 @@
+{
+    "name": "typephp/hash-brace-scanner",
+    "description": "Corpus scanner measuring the BC impact of a bounded #{ ... } token in PHP",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "ext-curl": "*",
+        "ext-tokenizer": "*",
+        "ext-zip": "*",
+        "hiblaphp/http-client": "^1.0"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.0",
+        "laravel/pint": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "typephp/typephp": "*"
+    },
+    "autoload": {
+        "psr-4": { "HashBraceScanner\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "beta",
+    "prefer-stable": true
+}

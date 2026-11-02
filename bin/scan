@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use HashBraceScanner\Scanner;
+
+if ($argc < 2) {
+    fwrite(STDERR, "Usage: bin/scan <dir> [<dir> ...] > reports/report.json\n");
+    exit(1);
+}
+
+$scanner = new Scanner();
+
+foreach (array_slice($argv, 1) as $dir) {
+    if (!is_dir($dir)) {
+        fwrite(STDERR, "Not a directory: {$dir}\n");
+        exit(1);
+    }
+    $scanner->scanDirectory($dir);
+}
+
+echo json_encode($scanner->report(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";

@@ -1,0 +1,63 @@
+name: Corpus scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_count:
+        description: "How many top Packagist packages to scan"
+        default: "500"
+      concurrency:
+        description: "Concurrent downloads"
+        default: "8"
+  push:
+    paths: ["src/**", "tests/**", "bin/**", "composer.json", "composer.lock"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: curl, zip, mbstring
+          tools: composer
+      - run: composer install --prefer-dist --no-progress
+      - run: vendor/bin/pest
+
+  scan:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: curl, zip, mbstring
+          tools: composer
+      - run: composer install --no-dev --prefer-dist --no-progress
+
+      - name: Download corpus from Packagist
+        env:
+          # Lifts the unauthenticated api.github.com rate limit on zip downloads
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: php bin/fetch-corpus "${{ inputs.package_count }}" --concurrency="${{ inputs.concurrency }}"
+
+      - name: Scan for "#{" comments
+        run: php bin/scan corpus/ > reports/report.json
+
+      - name: Summary
+        run: |
+          php -r '$r = json_decode(file_get_contents("reports/report.json"), true);
+                  $f = json_decode(file_get_contents("reports/fetch-report.json"), true);
+                  echo "### Scan\n```json\n", json_encode($r["stats"], JSON_PRETTY_PRINT), "\n```\n";
+                  echo "### Fetch\n`{$f["succeeded"]}` of `{$f["requested"]}` packages fetched\n```json\n", json_encode($f["failures_by_reason"], JSON_PRETTY_PRINT), "\n```\n";' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hash-brace-report
+          path: |
+            reports/report.json
+            reports/fetch-report.json

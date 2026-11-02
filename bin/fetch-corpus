@@ -1,0 +1,66 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use HashBraceScanner\Fetch\Fetcher;
+
+// Usage: php bin/fetch-corpus [count] [--concurrency=8] [--target=corpus] [--report=reports/fetch-report.json]
+$count = 500;
+$options = [
+    'concurrency' => '8',
+    'target' => __DIR__ . '/../corpus',
+    'report' => __DIR__ . '/../reports/fetch-report.json',
+];
+
+foreach (array_slice($argv, 1) as $arg) {
+    if (preg_match('/^--([a-z-]+)=(.+)$/', $arg, $m) === 1 && array_key_exists($m[1], $options)) {
+        $options[$m[1]] = $m[2];
+    } elseif (ctype_digit($arg)) {
+        $count = (int) $arg;
+    } else {
+        fwrite(STDERR, "Unknown argument: {$arg}\n");
+        exit(1);
+    }
+}
+
+$concurrency = (int) $options['concurrency'];
+$token = getenv('GITHUB_TOKEN') ?: null;
+
+if ($token === null) {
+    fwrite(STDERR, "Note: GITHUB_TOKEN is not set. Zip downloads from api.github.com are rate-limited\n"
+        . "      when unauthenticated, so large runs will likely report rate_limited failures.\n");
+}
+
+@mkdir($options['target'], 0777, true);
+@mkdir(dirname($options['report']), 0777, true);
+
+$fetcher = new Fetcher($options['target'], $concurrency, $token);
+
+$names = $fetcher->popularPackageNames($count);
+if ($names === []) {
+    fwrite(STDERR, "Could not read the popular package list from Packagist.\n");
+    exit(1);
+}
+fwrite(STDERR, count($names) . " packages to fetch (concurrency {$concurrency})\n");
+
+$report = $fetcher->fetchAll($names, function (int $done, int $total) {
+    if ($done % 25 === 0 || $done === $total) {
+        fwrite(STDERR, "{$done}/{$total} processed\n");
+    }
+});
+
+file_put_contents($options['report'], json_encode($report->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+fwrite(STDERR, sprintf("Fetched %d of %d packages into %s\n", $report->succeeded(), $report->requested, $options['target']));
+foreach ($report->failuresByReason() as $reason => $n) {
+    fwrite(STDERR, "  {$reason}: {$n}\n");
+}
+if ($report->hasRateLimitFailures()) {
+    fwrite(STDERR, "Rate limited: set GITHUB_TOKEN (a personal access token) and run again.\n");
+}
+fwrite(STDERR, "Report written to {$options['report']}\n");
+
+exit($report->succeeded() > 0 ? 0 : 1);
