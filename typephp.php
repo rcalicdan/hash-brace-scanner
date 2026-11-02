@@ -77,9 +77,9 @@ return [
     | 'fail_on_zero_files' : When true, terminates the process with exit code 1 if 0 application
     |                        files were instrumented. Prevents CI passes when include patterns match nothing.
     */
-    'on_violation'       => 'throw',
-    'report_file'        => null,
-    'fail_on_report'     => false,
+    'on_violation' => 'throw',
+    'report_file' => null,
+    'fail_on_report' => false,
     'fail_on_zero_files' => false,
 
     /*
@@ -107,10 +107,10 @@ return [
     | When enabled, all parameter and return types (generics, shapes, scalars)
     | are enforced uniformly to maintain type state consistency.
     */
-    'params'     => true,
-    'returns'    => true,
+    'params' => true,
+    'returns' => true,
     'params_out' => true,
-    'self_out'   => true,
+    'self_out' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -156,7 +156,7 @@ return [
     */
     'magic_properties' => [
         'write' => true,
-        'read'  => false,
+        'read' => false,
     ],
     'magic_methods' => true,
 
@@ -188,7 +188,7 @@ return [
     |--------------------------------------------------------------------------
     | Controls how collections (list<T>, array<K, V>, Type[]) are verified:
     |
-    | - 'full'   : (Default / Strict) 100% exhaustive scan. Checks every single 
+    | - 'full'   : (Default / Strict) 100% exhaustive scan. Checks every single
     |             item in every array, guaranteeing every single offending item
     |             is caught without exception.
     |
@@ -217,7 +217,7 @@ return [
     | When enabled, transformed PHP files are cached on disk for speed.
     | Set to false to run AST transformations purely in RAM (php://memory).
     |
-    | 'cache_dir' determines where these files are stored. By default (null), 
+    | 'cache_dir' determines where these files are stored. By default (null),
     | it uses your system's temp directory. You can change this to a path
     | inside your project, e.g., __DIR__ . '/storage/framework/typephp'.
     | TypePHP will automatically protect this directory from being re-transformed.
@@ -231,8 +231,8 @@ return [
     |--------------------------------------------------------------------------
     | When enabled (default), TypePHP checks file modification times (filemtime)
     | to automatically rebuild the cache when a file changes.
-    | 
-    | In production, files do not change. Set this to FALSE to eliminate 
+    |
+    | In production, files do not change. Set this to FALSE to eliminate
     | hundreds of disk I/O checks per request for maximum performance.
     | Note: If disabled, you must run `php bin/typephp cache:clear` on deployment.
     */
@@ -276,11 +276,11 @@ return [
     */
     'inline_vars' => [
         'properties' => true,
-        'generics'   => true,
-        'callables'  => true,
-        'scalars'    => true,
-        'arrays'     => true,
-        'objects'    => true,
+        'generics' => true,
+        'callables' => true,
+        'scalars' => true,
+        'arrays' => true,
+        'objects' => true,
     ],
 
     /*
