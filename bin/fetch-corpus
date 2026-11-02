@@ -14,6 +14,7 @@ $count = (int) env('FETCH_COUNT', 500);
 
 $options = [
     'concurrency' => (string) env('FETCH_CONCURRENCY', '8'),
+    'workers'     => (string) env('FETCH_WORKERS', '4'),
     'target'      => (string) env('FETCH_TARGET', __DIR__ . '/../corpus'),
     'report'      => (string) env('FETCH_REPORT', __DIR__ . '/../reports/fetch-report.json'),
 ];
@@ -25,11 +26,13 @@ foreach (array_slice($argv, 1) as $arg) {
         $count = (int) $arg;
     } else {
         fwrite(STDERR, "Unknown argument: {$arg}\n");
+        fwrite(STDERR, "Usage: php bin/fetch-corpus [count] [--concurrency=8] [--workers=4] [--target=corpus] [--report=reports/fetch-report.json]\n");
         exit(1);
     }
 }
 
-$concurrency = (int) $options['concurrency'];
+$concurrency = max(1, (int) $options['concurrency']);
+$workers     = max(1, (int) $options['workers']);
 
 $token = env('GITHUB_TOKEN') ?: null;
 
@@ -40,14 +43,14 @@ if ($token === null) {
 @mkdir($options['target'], 0777, true);
 @mkdir(dirname($options['report']), 0777, true);
 
-$fetcher = new Fetcher($options['target'], $concurrency, $token);
+$fetcher = new Fetcher($options['target'], $concurrency, $token, $workers);
 
 $names = $fetcher->popularPackageNames($count);
 if ($names === []) {
     fwrite(STDERR, "Could not read the popular package list from Packagist.\n");
     exit(1);
 }
-fwrite(STDERR, count($names) . " packages to fetch (concurrency {$concurrency})\n");
+fwrite(STDERR, sprintf("%d packages to fetch (HTTP concurrency: %d, CPU workers: %d)\n", count($names), $concurrency, $workers));
 
 $report = $fetcher->fetchAll($names, function (int $done, int $total) {
     if ($done % 25 === 0 || $done === $total) {

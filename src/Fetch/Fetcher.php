@@ -25,8 +25,11 @@ use function Hibla\await;
 final class Fetcher
 {
     private const string POPULAR_URL = 'https://packagist.org/explore/popular.json';
+
     private const string METADATA_URL = 'https://repo.packagist.org/p2/';
+
     private const int PER_PAGE = 100;
+    
     private const int PAGE_CONCURRENCY = 4;
 
     private HttpClientInterface $http;

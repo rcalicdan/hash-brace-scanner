@@ -1,102 +1,85 @@
+Here is the updated `README.md` with the honest limitations section added back in to provide full transparency on the tool's scope.
+
+```markdown
 # hash-brace-scanner
 
-Measures the backward-compatibility impact of introducing a bounded
-`#{ ... }` token in PHP, by scanning real-world code for existing comments
-that start with `#{`.
+An AST scanner measuring the backward-compatibility impact of introducing a bounded `#{ ... }` token in PHP.
 
-Today `#{` is an ordinary single-line comment. If the engine made it a
-bounded token, existing comments would change meaning. This tool counts them.
+This tool scans PHP codebases for existing `#{` comments to determine if converting them into bounded tokens would break existing code.
 
-## What it reports
+## Requirements
 
-Each real `T_COMMENT` starting with `#{` (strings, heredocs and inline HTML
-are excluded by using the tokenizer) is classified:
+* **PHP 8.4+**
+* Extensions: `tokenizer`, `zip`, `curl`
+
+## Installation
+
+```bash
+composer install
+cp .env.example .env
+```
+
+Open `.env` to set your configuration. **A GitHub Personal Access Token (`GITHUB_TOKEN`) is highly recommended** to bypass API rate limits when downloading packages.
+
+```dotenv
+GITHUB_TOKEN=ghp_yourTokenHere123456789
+FETCH_COUNT=500
+FETCH_CONCURRENCY=8
+FETCH_WORKERS=4
+FETCH_TARGET="corpus"
+FETCH_REPORT="reports/fetch-report.json"
+```
+
+## Usage
+
+### 1. Fetching a Corpus
+
+Downloads the latest releases of the most popular Packagist packages concurrently.
+
+```bash
+php bin/fetch-corpus
+```
+*Note: You can override `.env` variables via CLI flags:*  
+`php bin/fetch-corpus 1000 --concurrency=12 --workers=8`
+
+* **`--concurrency`**: Controls the number of simultaneous network I/O downloads (HTTP fetching).
+* **`--workers`**: Controls the number of parallel CPU background processes used for extracting ZIP files.
+
+### 2. Scanning
+
+Scans directories for `#{` comments utilizing all available CPU cores.
+
+```bash
+php bin/scan corpus/ > reports/report.json
+```
+
+*Note: You can control the number of parallel CPU workers and specify an output file directly:*  
+`php bin/scan corpus/ --concurrency=14 --output=reports/report.json`
+
+*You can also point the scanner at any custom codebase:*  
+`php bin/scan /path/to/legacy/app`
+
+## What it Reports
+
+Each real `T_COMMENT` starting with `#{` (strings, heredocs, and inline HTML are automatically ignored by the tokenizer) is classified:
 
 | Category        | Meaning under a bounded token                               |
 |-----------------|-------------------------------------------------------------|
 | `unterminated`  | No matching `}` on the line: would become a parse error     |
 | `trailing_code` | Text after the matching `}`: the tail would become live code |
-| `clean`         | Closes with nothing after: comment becomes a doc-comment    |
+| `clean`         | Closes with nothing after: safely becomes metadata           |
 
-`breaking_hits = unterminated + trailing_code` is the headline number.
-`annotation_like` counts comments already shaped like `#{@tag ...}`.
-
-## Usage
-
-```bash
-composer install
-vendor/bin/pest                        # run the tests
-php bin/fetch-corpus 500               # download top 500 Packagist packages to corpus/
-php bin/scan corpus/ > reports/report.json
-php bin/scan ~/projects/my-app src/    # scan any directories
-```
-
-Requires PHP 8.4+ with the `tokenizer`, `zip` and `curl` extensions. Classes are
-loaded through Composer's PSR-4 autoloader (`HashBraceScanner\` maps to `src/`).
-
-### Fetching a corpus
-
-`bin/fetch-corpus` downloads packages concurrently with
-[Hibla](https://github.com/hiblaphp) (`hiblaphp/http-client` and
-`Promise::mapSettled()`), so one failing package never cancels the others.
-
-```bash
-php bin/fetch-corpus 1000 --concurrency=8
-php bin/fetch-corpus 200 --target=D:\corpus --report=reports\run1.json
-```
-
-| Option          | Default                     | Meaning                              |
-|-----------------|-----------------------------|--------------------------------------|
-| `[count]`       | `500`                       | How many top packages to fetch       |
-| `--concurrency` | `8`                         | Downloads in flight at once          |
-| `--target`      | `corpus/`                   | Where packages are extracted         |
-| `--report`      | `reports/fetch-report.json` | Per-package results and failures     |
-
-**Set `GITHUB_TOKEN`.** Packagist's zip URLs usually point at `api.github.com`,
-whose unauthenticated rate limit is low. Without a token, large runs will
-report `rate_limited` failures. Use a personal access token locally
-(`$env:GITHUB_TOKEN = "..."` in PowerShell) and `secrets.GITHUB_TOKEN` in Actions
-(already wired up in the workflow).
-
-`reports/fetch-report.json` lists every package fetched (with version) and every
-failure with its reason (`rate_limited`, `not_found`, `no_dist`, `bad_zip`,
-`timeout`, `network`, ...), so the corpus size you quote is verifiable.
-
-## Running online
-
-Run the **Corpus scan** workflow from the repository's Actions tab. It runs
-the Pest suite, downloads the corpus, scans it, writes both summaries to the
-run summary and uploads `report.json` and `fetch-report.json` as artifacts.
-
-## Layout
-
-```
-bin/scan                      CLI: scan directories, print JSON report
-bin/fetch-corpus              CLI: download top Packagist packages
-src/Category.php              Enum of BC-impact categories
-src/Classifier.php            Brace-balancing classification of one comment
-src/Scanner.php               Tokenizes files and aggregates results
-src/Fetch/Fetcher.php         Hibla-based concurrent download (Promise::mapSettled)
-src/Fetch/DistResolver.php    Picks the newest release URL from Packagist metadata
-src/Fetch/ZipExtractor.php    Extracts a downloaded zip
-src/Fetch/FetchReport.php     Aggregates successes and failures by reason
-tests/Unit/                   Classifier and fetch-unit tests (Pest datasets)
-tests/Feature/                Scanner tests against real fixture files
-tests/Fixtures/               One small PHP file per case, including the
-                              "#{ that must NOT be counted" cases
-```
-
-The HTTP path in `Fetcher` is not covered by the offline tests; the logic around
-it (`DistResolver`, `ZipExtractor`, `FetchReport`) is.
+`breaking_hits = unterminated + trailing_code` is the headline metric determining the syntax's safety.
 
 ## Limitations
 
-- Popular packages are well-maintained library code, so results likely
-  understate the rate in applications, plugins and legacy projects.
-- Only the latest release of each package is scanned.
-- Single-line only: `#` comments end at the newline, so multi-line `#{ }`
-  blocks are not a case today.
-- Braces inside quoted text within a comment are counted as braces.
-- Hibla is in beta: `composer.json` sets `minimum-stability` to `beta`.
-- On Windows, deeply nested packages can exceed the 260-character path limit
-  when extracted; use a short `--target` such as `C:\c` if you see `bad_zip`.
+* **"Clean Code" Bias:** The top Packagist packages are generally well-maintained, PSR-compliant library code. This may understate the collision rate in legacy enterprise applications or CMS plugins.
+* **Latest Releases Only:** The fetcher only downloads the single newest release of each package.
+* **Single-line Scope Constraints:** In current PHP, `#` comments terminate strictly at the newline. Therefore, multi-line `#{ ... }` blocks do not exist in the wild today. 
+* **Quoted Braces:** Literal curly braces inside quoted text *within* an existing comment are currently counted as structural braces by the scanner.
+* **Windows Path Limits:** On Windows, deeply nested vendor packages can exceed the 260-character path limit when extracted. Use a short `--target` path such as `C:\c` if you encounter `bad_zip` errors.
+
+## IDE Configuration
+
+To prevent your IDE (VS Code / PhpStorm) from freezing while attempting to index hundreds of thousands of third-party PHP files, this repository includes `.vscode/settings.json` and `.idea/` configurations that automatically mark the `corpus/` directory as excluded.
+```
