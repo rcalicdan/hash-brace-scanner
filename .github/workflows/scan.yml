@@ -41,7 +41,6 @@ jobs:
 
       - name: Download corpus from Packagist
         env:
-          # Lifts the unauthenticated api.github.com rate limit on zip downloads
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: php bin/fetch-corpus "${{ inputs.package_count }}" --concurrency="${{ inputs.concurrency }}"
 

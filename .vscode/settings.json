@@ -1,0 +1,26 @@
+{
+    "intelephense.files.exclude": [
+        "**/.git/**",
+        "**/.svn/**",
+        "**/.hg/**",
+        "**/CVS/**",
+        "**/.DS_Store/**",
+        "**/node_modules/**",
+        "**/bower_components/**",
+        "**/vendor/**{Test,test,Tests,tests}/**",
+        "**/vendor/**/vendor/**",
+        "**/corpus/**"
+    ],
+
+    "php.files.exclude": {
+        "**/corpus/**": true
+    },
+
+    "files.watcherExclude": {
+        "**/corpus/**": true
+    },
+
+    "search.exclude": {
+        "**/corpus/**": true
+    }
+}
