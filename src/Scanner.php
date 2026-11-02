@@ -133,7 +133,7 @@ final class Scanner
 
     /**
      * @param array{
-     *   stats: array<string, mixed>, 
+     *   stats: array<string, mixed>,
      *   samples: array<string, list<array{file: string, line: int, text: string}>>} $other
      */
     public function merge(array $other): void

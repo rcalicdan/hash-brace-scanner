@@ -30,6 +30,7 @@ final class Fetcher
     private const int PAGE_CONCURRENCY = 4;
 
     private HttpClientInterface $http;
+
     private ProcessPool $pool;
 
     public function __construct(
@@ -47,7 +48,8 @@ final class Fetcher
             ->connectTimeout(10)
             ->timeout(60)
             ->redirects(true, 10)
-            ->retry(maxRetries: 3, baseDelay: 1.0);
+            ->retry(maxRetries: 3, baseDelay: 1.0)
+        ;
 
         $this->pool = new ProcessPool(size: $workerCount);
     }
@@ -61,13 +63,13 @@ final class Fetcher
 
         $results = await(Promise::mapSettled(
             range(1, $pages),
-            fn(int $page) => $this->http->get(self::POPULAR_URL, ['per_page' => self::PER_PAGE, 'page' => $page]),
+            fn (int $page) => $this->http->get(self::POPULAR_URL, ['per_page' => self::PER_PAGE, 'page' => $page]),
             concurrency: self::PAGE_CONCURRENCY,
         ));
 
         $names = [];
         foreach ($results as $result) {
-            if (!$result->isFulfilled() || !$result->value->successful()) {
+            if (! $result->isFulfilled() || ! $result->value->successful()) {
                 continue;
             }
             foreach ($result->value->json('packages', []) as $package) {
@@ -98,13 +100,14 @@ final class Fetcher
 
         $results = await(Promise::mapSettled(
             $names,
-            fn(string $name) => $this->fetchOne($name, $tick),
+            fn (string $name) => $this->fetchOne($name, $tick),
             concurrency: $this->concurrency,
         ));
 
         foreach ($results as $index => $result) {
             if ($result->isFulfilled()) {
                 $report->recordSuccess($result->value);
+
                 continue;
             }
 
