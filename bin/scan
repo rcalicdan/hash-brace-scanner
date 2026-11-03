@@ -11,24 +11,27 @@ use HashBraceScanner\Scanner;
 use Hibla\Parallel\ProcessPool;
 use Hibla\Parallel\Utilities\SystemUtilities;
 use Hibla\Promise\Promise;
+
+use function Hibla\asyncFn;
 use function Hibla\await;
 
 $directories = [];
 $outputFile = null;
-$concurrency = SystemUtilities::getCpuCount() - 2; 
+
+$workers = max(1, SystemUtilities::getCpuCount() - 2);
 
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--output=')) {
         $outputFile = substr($arg, 9);
-    } elseif (preg_match('/^--concurrency=(\d+)$/', $arg, $m) === 1) {
-        $concurrency = (int) $m[1];
+    } elseif (preg_match('/^--(?:workers|concurrency)=(\d+)$/', $arg, $m) === 1) {
+        $workers = max(1, (int) $m[1]);
     } elseif (!str_starts_with($arg, '-')) {
         $directories[] = $arg;
     }
 }
 
 if ($directories === []) {
-    fwrite(STDERR, "Usage: bin/scan <dir> [<dir> ...] [--concurrency=8] [--output=reports/report.json]\n");
+    fwrite(STDERR, "Usage: bin/scan <dir> [<dir> ...] [--workers=8] [--output=reports/report.json]\n");
     fwrite(STDERR, "       bin/scan <dir> > reports/report.json\n");
     exit(1);
 }
@@ -55,7 +58,7 @@ foreach ($directories as $dir) {
 }
 
 $totalFiles = count($files);
-fwrite(STDERR, sprintf("Found %s PHP files. Scanning across %d CPU workers...\n", number_format($totalFiles), $concurrency));
+fwrite(STDERR, sprintf("Found %s PHP files. Scanning across %d CPU workers...\n", number_format($totalFiles), $workers));
 
 if ($totalFiles === 0) {
     $emptyReport = (new Scanner())->report();
@@ -66,54 +69,49 @@ if ($totalFiles === 0) {
 $chunkSize = 500;
 $chunks = array_chunk($files, $chunkSize);
 
-$pool = new ProcessPool(size: $concurrency);
+$pool = new ProcessPool(size: $workers);
 $masterScanner = new Scanner();
 
 $startTime = microtime(true);
 $scannedCount = 0;
 
-try {
-    $results = await(Promise::mapSettled(
-        $chunks,
-        function (array $chunk) use ($pool, &$scannedCount, $totalFiles, $startTime): array {
-    
-            $chunkReport = await($pool->run(static function () use ($chunk): array {
-                $scanner = new Scanner();
-                foreach ($chunk as $file) {
-                    $scanner->scanFile($file);
-                }
-                return $scanner->report();
-            }));
+$results = await(Promise::mapSettled(
+    $chunks,
+    asyncFn(function (array $chunk) use ($pool, &$scannedCount, $totalFiles, $startTime): array {
+        $chunkReport = await($pool->run(static function () use ($chunk): array {
+            $scanner = new Scanner();
+            foreach ($chunk as $file) {
+                $scanner->scanFile($file);
+            }
+            return $scanner->report();
+        }));
 
-            $scannedCount += count($chunk);
+        $scannedCount += count($chunk);
 
-            $elapsed = max(0.001, microtime(true) - $startTime);
-            $rate = (int) ($scannedCount / $elapsed);
-            $percent = (int) (($scannedCount / $totalFiles) * 100);
+        $elapsed = max(0.001, microtime(true) - $startTime);
+        $rate = (int) ($scannedCount / $elapsed);
+        $percent = (int) (($scannedCount / $totalFiles) * 100);
 
-            fwrite(
-                STDERR,
-                sprintf(
-                    "\r  [%3d%%] Scanned: %s / %s (%s files/s)   ",
-                    $percent,
-                    number_format($scannedCount),
-                    number_format($totalFiles),
-                    number_format($rate)
-                )
-            );
+        fwrite(
+            STDERR,
+            sprintf(
+                "\r  [%3d%%] Scanned: %s / %s (%s files/s)   ",
+                $percent,
+                number_format($scannedCount),
+                number_format($totalFiles),
+                number_format($rate)
+            )
+        );
 
-            return $chunkReport;
-        },
-        concurrency: $concurrency
-    ));
+        return $chunkReport;
+    }),
+    concurrency: $workers
+));
 
-    foreach ($results as $result) {
-        if ($result->isFulfilled()) {
-            $masterScanner->merge($result->value);
-        }
+foreach ($results as $result) {
+    if ($result->isFulfilled()) {
+        $masterScanner->merge($result->value);
     }
-} finally {
-    $pool->shutdown();
 }
 
 $elapsed = max(0.001, microtime(true) - $startTime);
